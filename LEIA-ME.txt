@@ -1,0 +1,14 @@
+THE READING NEST — PROJETO COMPLETO
+
+1. Extraia a pasta The-Reading-Nest.
+2. Abra o VS Code.
+3. Selecione Arquivo > Abrir Pasta e escolha The-Reading-Nest.
+4. Abra index.html com a extensão Live Server.
+
+CONTAS DE TESTE
+Cliente: cliente@thereadingnest.com | Cliente123!
+Admin:   admin@thereadingnest.com   | Admin123!
+
+Leia o README.md para conhecer as páginas, recursos, estrutura e limitações.
+Este é um protótipo front-end: não use senhas ou dados reais. A autenticação
+administrativa precisa ser implementada no servidor antes da publicação.

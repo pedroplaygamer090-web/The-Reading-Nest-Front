@@ -1,15 +1,117 @@
-/* Dados iniciais do catálogo. Os dados editados ficam salvos no navegador (localStorage). */
-window.RN_DEFAULT_BOOKS = [
-    { id: 1, title: 'Dom Casmurro', author: 'Machado de Assis', category: 'Clássicos', year: 1899, price: 12, stock: 4, available: true, tone: 4, description: 'Um dos grandes romances da literatura brasileira. Entre lembranças, ciúmes e dúvidas, Bentinho revisita sua história com Capitu e convida o leitor a questionar cada detalhe.' },
-    { id: 2, title: 'Orgulho e Preconceito', author: 'Jane Austen', category: 'Romance', year: 1813, price: 14, stock: 3, available: true, tone: 2, description: 'Elizabeth Bennet e Mr. Darcy protagonizam uma história sobre primeiras impressões, orgulho, afeto e as convenções sociais da Inglaterra do século XIX.' },
-    { id: 3, title: 'O Pequeno Príncipe', author: 'Antoine de Saint-Exupéry', category: 'Fantasia', year: 1943, price: 10, stock: 5, available: true, tone: 1, description: 'Uma fábula delicada sobre amizade, afeto e o essencial que tantas vezes passa despercebido aos olhos.' },
-    { id: 4, title: '1984', author: 'George Orwell', category: 'Ficção', year: 1949, price: 15, stock: 2, available: true, tone: 3, description: 'Uma distopia marcante sobre vigilância, linguagem, liberdade e poder, em uma sociedade controlada pelo Grande Irmão.' },
-    { id: 5, title: 'A Hora da Estrela', author: 'Clarice Lispector', category: 'Clássicos', year: 1977, price: 11, stock: 3, available: true, tone: 2, description: 'A trajetória de Macabéa, jovem nordestina no Rio de Janeiro, narrada com a sensibilidade e a profundidade características de Clarice Lispector.' },
-    { id: 6, title: 'O Hobbit', author: 'J. R. R. Tolkien', category: 'Fantasia', year: 1937, price: 16, stock: 2, available: true, tone: 1, description: 'Bilbo Bolseiro deixa o conforto de sua toca para viver uma aventura extraordinária ao lado de anões e de um mago.' },
-    { id: 7, title: 'A Revolução dos Bichos', author: 'George Orwell', category: 'Ficção', year: 1945, price: 12, stock: 4, available: true, tone: 3, description: 'Uma fábula satírica sobre poder, manipulação e desigualdade, protagonizada pelos animais de uma fazenda.' },
-    { id: 8, title: 'Persuasão', author: 'Jane Austen', category: 'Romance', year: 1817, price: 13, stock: 1, available: true, tone: 4, description: 'Anne Elliot reencontra um amor do passado em um romance sobre amadurecimento, escolhas e segundas oportunidades.' }
+/*
+ * The Reading Nest — Configurações e Acervo Oficial de Fallback
+ * A aplicação consome a API RESTful em http://localhost:8080.
+ * Estes dados oficiais garantem que a livraria nunca exiba telas quebradas em caso de oscilações da API.
+ */
+window.RN_API_BASE = 'http://localhost:8080';
+
+window.RN_DEFAULT_GENRES = [
+    { id: 'c1d2e3f4-0001-4000-8000-000000000001', nome: 'Clássicos' },
+    { id: 'c1d2e3f4-0002-4000-8000-000000000002', nome: 'Romance' },
+    { id: 'c1d2e3f4-0003-4000-8000-000000000003', nome: 'Fantasia' },
+    { id: 'c1d2e3f4-0004-4000-8000-000000000004', nome: 'Ficção' }
 ];
+
+window.RN_DEFAULT_BOOKS = [
+    {
+        id: 'b1d2e3f4-0001-4000-8000-000000000001',
+        generoId: 'c1d2e3f4-0001-4000-8000-000000000001',
+        generoNome: 'Clássicos',
+        titulo: 'Dom Casmurro',
+        autor: 'Machado de Assis',
+        descricao: 'Um dos grandes romances da literatura brasileira. Entre lembranças, ciúmes e dúvidas, Bentinho revisita sua história com Capitu e convida o leitor a questionar cada detalhe.',
+        anoPublicacao: 1899,
+        isbn: '9788535910663',
+        quantidadeDisponivel: 4,
+        statusLivro: 'ativo'
+    },
+    {
+        id: 'b1d2e3f4-0002-4000-8000-000000000002',
+        generoId: 'c1d2e3f4-0002-4000-8000-000000000002',
+        generoNome: 'Romance',
+        titulo: 'Orgulho e Preconceito',
+        autor: 'Jane Austen',
+        descricao: 'Elizabeth Bennet e Mr. Darcy protagonizam uma história sobre primeiras impressões, orgulho, afeto e as convenções sociais da Inglaterra do século XIX.',
+        anoPublicacao: 1813,
+        isbn: '9788544001820',
+        quantidadeDisponivel: 3,
+        statusLivro: 'ativo'
+    },
+    {
+        id: 'b1d2e3f4-0003-4000-8000-000000000003',
+        generoId: 'c1d2e3f4-0003-4000-8000-000000000003',
+        generoNome: 'Fantasia',
+        titulo: 'O Pequeno Príncipe',
+        autor: 'Antoine de Saint-Exupéry',
+        descricao: 'Uma fábula delicada sobre amizade, afeto e o essencial que tantas vezes passa despercebido aos olhos.',
+        anoPublicacao: 1943,
+        isbn: '9788522031443',
+        quantidadeDisponivel: 5,
+        statusLivro: 'ativo'
+    },
+    {
+        id: 'b1d2e3f4-0004-4000-8000-000000000004',
+        generoId: 'c1d2e3f4-0004-4000-8000-000000000004',
+        generoNome: 'Ficção',
+        titulo: '1984',
+        autor: 'George Orwell',
+        descricao: 'Uma distopia marcante sobre vigilância, linguagem, liberdade e poder, em uma sociedade controlada pelo Grande Irmão.',
+        anoPublicacao: 1949,
+        isbn: '9788535914845',
+        quantidadeDisponivel: 2,
+        statusLivro: 'ativo'
+    },
+    {
+        id: 'b1d2e3f4-0005-4000-8000-000000000005',
+        generoId: 'c1d2e3f4-0001-4000-8000-000000000001',
+        generoNome: 'Clássicos',
+        titulo: 'A Hora da Estrela',
+        autor: 'Clarice Lispector',
+        descricao: 'A trajetória de Macabéa, jovem nordestina no Rio de Janeiro, narrada com a sensibilidade e a profundidade características de Clarice Lispector.',
+        anoPublicacao: 1977,
+        isbn: '9788532508129',
+        quantidadeDisponivel: 3,
+        statusLivro: 'ativo'
+    },
+    {
+        id: 'b1d2e3f4-0006-4000-8000-000000000006',
+        generoId: 'c1d2e3f4-0003-4000-8000-000000000003',
+        generoNome: 'Fantasia',
+        titulo: 'O Hobbit',
+        autor: 'J. R. R. Tolkien',
+        descricao: 'Bilbo Bolseiro deixa o conforto de sua toca para viver uma aventura extraordinária ao lado de anões e de um mago.',
+        anoPublicacao: 1937,
+        isbn: '9788595084742',
+        quantidadeDisponivel: 2,
+        statusLivro: 'ativo'
+    },
+    {
+        id: 'b1d2e3f4-0007-4000-8000-000000000007',
+        generoId: 'c1d2e3f4-0004-4000-8000-000000000004',
+        generoNome: 'Ficção',
+        titulo: 'A Revolução dos Bichos',
+        autor: 'George Orwell',
+        descricao: 'Uma fábula satírica sobre poder, manipulação e desigualdade, protagonizada pelos animais de uma fazenda.',
+        anoPublicacao: 1945,
+        isbn: '9788535909551',
+        quantidadeDisponivel: 4,
+        statusLivro: 'ativo'
+    },
+    {
+        id: 'b1d2e3f4-0008-4000-8000-000000000008',
+        generoId: 'c1d2e3f4-0002-4000-8000-000000000002',
+        generoNome: 'Romance',
+        titulo: 'Persuasão',
+        autor: 'Jane Austen',
+        descricao: 'Anne Elliot reencontra um amor do passado em um romance sobre amadurecimento, escolhas e segundas oportunidades.',
+        anoPublicacao: 1817,
+        isbn: '9788544002131',
+        quantidadeDisponivel: 1,
+        statusLivro: 'ativo'
+    }
+];
+
 window.RN_DEFAULT_USERS = [
-    { id: 1, name: 'Cliente Demonstração', email: 'cliente@thereadingnest.com', password: 'Cliente123!', role: 'cliente' },
-    { id: 2, name: 'Administrador', email: 'admin@thereadingnest.com', password: 'Admin123!', role: 'admin' }
+    { id: 'u1d2e3f4-0002-4000-8000-000000000002', nome: 'Cliente Demonstração', email: 'cliente@thereadingnest.com', perfil: 'cliente' },
+    { id: 'u1d2e3f4-0001-4000-8000-000000000001', nome: 'Administrador', email: 'admin@thereadingnest.com', perfil: 'admin' }
 ];

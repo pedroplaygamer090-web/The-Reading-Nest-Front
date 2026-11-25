@@ -4,7 +4,7 @@
     // =========================================================================
     // 1. Configurações Globais e Utilitários de Navegação / Sessão
     // =========================================================================
-    const API_BASE = window.RN_API_BASE || 'http://localhost:8080';
+    const API_BASE = window.RN_API_BASE || 'https://onrender.com';
     const page = document.body.dataset.page || 'home';
 
     const $ = (s, root = document) => root.querySelector(s);

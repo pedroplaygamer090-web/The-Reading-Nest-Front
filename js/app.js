@@ -4,7 +4,7 @@
     // =========================================================================
     // 1. Configurações Globais e Utilitários de Navegação / Sessão
     // =========================================================================
-    const API_BASE = window.RN_API_BASE || 'https://onrender.com';
+    const API_BASE = window.RN_API_BASE || 'https://the-reading-nest-back-1.onrender.com';
     const page = document.body.dataset.page || 'home';
 
     const $ = (s, root = document) => root.querySelector(s);
@@ -12,31 +12,53 @@
 
     const getToken = () => localStorage.getItem('rn_token');
 
+    const normalizeRole = (value) => {
+        const role = String(value || '').trim().toLowerCase();
+        if (role === 'admin' || role === 'administrador') return 'admin';
+        if (role === 'leitor' || role === 'cliente' || role === 'usuario' || role === 'usuário') return 'leitor';
+        return role || 'leitor';
+    };
+
     const current = () => {
         try {
             const raw = localStorage.getItem('rn_user');
             if (!raw) return null;
             const parsed = JSON.parse(raw);
+            const role = normalizeRole(parsed.perfil || parsed.role || parsed.tipoUsuario || parsed.tipo);
             return {
                 ...parsed,
-                name: parsed.nome || parsed.name || 'Leitor',
-                role: parsed.perfil || parsed.role || 'cliente'
+                name: parsed.nome || parsed.name || 'Usuário',
+                role,
+                perfil: role.toUpperCase()
             };
         } catch {
             return null;
         }
     };
 
+    const hasRole = (u, role) => normalizeRole(u?.role || u?.perfil) === normalizeRole(role);
+
     const setSession = (token, usuario) => {
         localStorage.setItem('rn_token', token);
         localStorage.setItem('rn_user', JSON.stringify(usuario));
     };
 
-    const logout = () => {
+    const logout = async () => {
+        const token = getToken();
         localStorage.removeItem('rn_token');
         localStorage.removeItem('rn_user');
+        if (token) {
+            try {
+                await fetch(`${API_BASE}/auth/logout`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+            } catch { }
+        }
         location.href = 'index.html';
     };
+
+    const getHomeRoute = (u = current()) => hasRole(u, 'admin') ? 'admin.html' : 'catalogo.html';
 
     const requireRole = (role) => {
         const u = current();
@@ -45,9 +67,10 @@
             location.replace('login.html');
             return false;
         }
-        if (role && u.role !== role) {
+        const expected = normalizeRole(role);
+        if (expected && !hasRole(u, expected)) {
             toast('Acesso restrito ao perfil autorizado.');
-            location.replace(u.role === 'admin' ? 'admin.html' : 'cliente.html');
+            location.replace(getHomeRoute(u));
             return false;
         }
         return true;
@@ -62,6 +85,32 @@
         }
         return true;
     };
+
+    const requireGuest = () => {
+        const u = current();
+        const t = getToken();
+        if (u && t) {
+            location.replace(getHomeRoute(u));
+            return false;
+        }
+        return true;
+    };
+
+    async function syncSessionIfPossible() {
+        const token = getToken();
+        if (!token) return null;
+        try {
+            const me = await apiRequest('/auth/me');
+            const usuario = me?.usuario || me;
+            if (usuario && (usuario.id || usuario.email)) {
+                localStorage.setItem('rn_user', JSON.stringify(usuario));
+                return current();
+            }
+        } catch (err) {
+            if (err?.status === 401) return null;
+        }
+        return current();
+    }
 
     const money = n => Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -108,8 +157,10 @@
         if (response.status === 401) {
             localStorage.removeItem('rn_token');
             localStorage.removeItem('rn_user');
-            toast('Sessão expirada. Redirecionando para o login...');
-            setTimeout(() => { location.href = 'login.html'; }, 1200);
+            if (page !== 'login' && page !== 'register') {
+                toast('Sessão expirada. Redirecionando para o login...');
+                setTimeout(() => { location.href = 'login.html'; }, 1200);
+            }
             const err = new Error('ACESSO NÃO AUTORIZADO: TOKEN AUSENTE OU EXPIRADO');
             err.status = 401;
             throw err;
@@ -207,9 +258,9 @@
                     <a class="${active === 'home' ? 'active' : ''}" href="index.html">Início</a>
                     <a class="${active === 'catalog' ? 'active' : ''}" href="catalogo.html">Catálogo</a>
                     <a class="${active === 'about' ? 'active' : ''}" href="sobre.html">Sobre nós</a>
-                    ${u?.role === 'cliente' ? `<a class="${active === 'rentals' ? 'active' : ''}" href="alugueis.html">Meus aluguéis</a>` : ''}
+                    ${hasRole(u, 'leitor') ? `<a class="${active === 'rentals' ? 'active' : ''}" href="alugueis.html">Meus aluguéis</a>` : ''}
                     ${u ? `<a class="${active === 'account' ? 'active' : ''}" href="cliente.html">Minha conta</a>` : ''}
-                    ${u?.role === 'admin' ? `<a class="${active === 'admin' ? 'active' : ''}" href="admin.html">Painel admin</a>` : ''}
+                    ${hasRole(u, 'admin') ? `<a class="${active === 'admin' ? 'active' : ''}" href="admin.html">Painel admin</a>` : ''}
                 </nav>
                 <div class="nav-actions">
                     ${u ? `
@@ -638,8 +689,8 @@
             return;
         }
 
-        if (u.role !== 'cliente') {
-            toast('Apenas contas de clientes podem solicitar empréstimos de livros.');
+        if (!hasRole(u, 'leitor')) {
+            toast('Apenas contas de leitor podem solicitar empréstimos de livros.');
             return;
         }
 
@@ -669,6 +720,7 @@
 
     // --- PÁGINA LOGIN (login.html) ---
     function renderLogin() {
+        if (!requireGuest()) return;
         const content = `
             <main class="auth-shell">
                 <section class="auth-story">
@@ -709,7 +761,7 @@
 
                         <div class="demo-box" style="margin-top:24px;padding:14px;background:#fffaf2;border:1px dashed var(--gold);font-size:12px">
                             <strong>Contas de Teste Oficiais</strong><br>
-                            Cliente: cliente@thereadingnest.com · Cliente123!<br>
+                            Leitor: cliente@thereadingnest.com · Cliente123!<br>
                             Admin: &nbsp; admin@thereadingnest.com &nbsp; · Admin123!
                         </div>
                     </div>
@@ -736,9 +788,9 @@
                 setSession(res.token, res.usuario);
                 toast(`Bem-vindo, ${res.usuario.nome}!`);
 
-                const perfil = res.usuario.perfil || res.usuario.role;
+                const perfil = normalizeRole(res.usuario.perfil || res.usuario.role || res.usuario.tipoUsuario || res.usuario.tipo);
                 setTimeout(() => {
-                    location.href = perfil === 'admin' ? 'admin.html' : 'cliente.html';
+                    location.href = perfil === 'admin' ? 'admin.html' : 'catalogo.html';
                 }, 800);
             } catch (err) {
                 msg.textContent = err.message;
@@ -749,6 +801,7 @@
 
     // --- PÁGINA CADASTRO (cadastro.html) ---
     function renderRegister() {
+        if (!requireGuest()) return;
         const content = `
             <main class="auth-shell">
                 <section class="auth-story">
@@ -825,7 +878,7 @@
 
                 setSession(loginRes.token, loginRes.usuario);
                 toast('Conta criada com sucesso! Bem-vindo ao The Reading Nest.');
-                setTimeout(() => { location.href = 'cliente.html'; }, 800);
+                setTimeout(() => { location.href = 'catalogo.html'; }, 800);
             } catch (err) {
                 msg.textContent = err.message;
                 msg.style.color = 'var(--red)';
@@ -950,7 +1003,7 @@
 
     // --- PÁGINA MEUS ALUGUÉIS (alugueis.html) ---
     async function renderRentals() {
-        if (!requireRole('cliente')) return;
+        if (!requireRole('leitor')) return;
         const u = current();
 
         $('#app').innerHTML = shell('rentals', `
@@ -984,7 +1037,7 @@
                     </div>
 
                     <div class="notice" style="margin-bottom:24px;border-left:3px solid var(--gold);padding:14px;background:#fffaf2">
-                        📍 <strong>Local de Retirada & Devolução:</strong> Alameda dos Alfarrábios, 1428 — Jardins. Entregue o exemplar no balcão para que o bibliotecário registre a devolução.
+                        <strong>Aviso importante:</strong> a devolução deve ser feita presencialmente no balcão da biblioteca para que o administrador confirme a baixa no sistema.
                     </div>
 
                     <section class="panel">
@@ -1122,20 +1175,31 @@
         `);
 
         try {
-            const [booksData, rentalsData, genresData] = await Promise.all([
+            const [booksData, rentalsData, genresData, usersData] = await Promise.all([
                 apiRequest('/livros?size=100').catch(() => ({ content: [] })),
                 apiRequest('/alugueis?size=50').catch(() => ({ content: [] })),
-                apiRequest('/generos?size=100').catch(() => ({ content: [] }))
+                apiRequest('/generos?size=100').catch(() => ({ content: [] })),
+                apiRequest('/usuarios?size=100').catch(() => ({ content: [] }))
             ]);
 
             const books = (booksData?.content || []).map(mapBook);
             const rentals = rentalsData?.content || [];
             const genres = (genresData?.content || []).map(g => ({ id: g.id, nome: g.nome }));
+            const users = (usersData?.content || usersData || []).map(u => ({
+                ...u,
+                id: u.id,
+                nome: u.nome || u.name || 'Usuário',
+                email: u.email || '-',
+                role: normalizeRole(u.perfil || u.role || u.tipoUsuario || u.tipo),
+                statusConta: u.statusConta || u.status || 'ativo'
+            }));
 
             const totalBooks = books.length;
             const stockTotal = books.reduce((acc, b) => acc + (b.stock || 0), 0);
             const totalRentals = rentals.length;
             const pendingRentals = rentals.filter(r => r.status === 'ativo' || r.status === 'atrasado').length;
+            const totalUsers = users.length;
+            const totalLeitores = users.filter(u => hasRole(u, 'leitor')).length;
 
             const content = `
                 <main class="admin-shell">
@@ -1143,7 +1207,8 @@
                         <p class="eyebrow">ADMINISTRAÇÃO</p>
                         <a class="active" href="admin.html">▦ &nbsp; Visão geral</a>
                         <a href="#books-admin">▤ &nbsp; Gerenciar acervo</a>
-                        <a href="#rentals-admin">⇄ &nbsp; Gerenciar aluguéis</a>
+                        <a href="#rentals-admin">⇄ &nbsp; Aluguéis dos usuários</a>
+                        <a href="#users-admin">👥 &nbsp; Contas de usuários</a>
                         <a href="catalogo.html">⌕ &nbsp; Ver catálogo</a>
                         <a href="cliente.html">👤 &nbsp; Minha conta</a>
                         <a href="#" data-action="logout">↪ &nbsp; Sair</a>
@@ -1169,12 +1234,12 @@
                                 <strong>${stockTotal}</strong>
                             </div>
                             <div class="stat-card">
-                                <small>Empréstimos registrados</small>
-                                <strong>${totalRentals}</strong>
-                            </div>
-                            <div class="stat-card">
                                 <small>Aluguéis em andamento</small>
                                 <strong>${pendingRentals}</strong>
+                            </div>
+                            <div class="stat-card">
+                                <small>Contas cadastradas</small>
+                                <strong>${totalUsers}</strong>
                             </div>
                         </div>
 
@@ -1233,7 +1298,7 @@
                             <div class="section-title">
                                 <div>
                                     <span class="eyebrow">BALCÃO DE ATENDIMENTO</span>
-                                    <h2>Gerenciar aluguéis</h2>
+                                    <h2>Aluguéis dos usuários</h2>
                                 </div>
                             </div>
                             ${rentals.length ? `
@@ -1263,11 +1328,8 @@
                                                     </td>
                                                     <td>
                                                         ${r.status !== 'concluido' ? `
-                                                            <div style="display:flex;gap:6px">
-                                                                <button class="btn btn-small btn-light" data-action="return-rental" data-id="${r.id}" title="Registrar devolução e repor estoque">Devolver</button>
-                                                                <button class="btn btn-small btn-danger" data-action="cancel-rental" data-id="${r.id}" title="Cancelar aluguel e repor estoque">Cancelar</button>
-                                                            </div>
-                                                        ` : `<span class="muted" style="font-size:12px">Concluído</span>`}
+                                                            <button class="btn btn-small btn-light" data-action="return-rental" data-id="${r.id}">Confirmar Devolução</button>
+                                                        ` : `<span class="muted" style="font-size:12px">Devolução confirmada</span>`}
                                                     </td>
                                                 </tr>
                                             `).join('')}
@@ -1275,6 +1337,57 @@
                                     </table>
                                 </div>
                             ` : `<div class="empty-state">Nenhuma solicitação de aluguel registrada até o momento.</div>`}
+                        </section>
+
+                        <section class="panel" id="users-admin" style="margin-top:30px">
+                            <div class="section-title">
+                                <div>
+                                    <span class="eyebrow">GESTÃO DE USUÁRIOS</span>
+                                    <h2>Contas de usuários</h2>
+                                </div>
+                            </div>
+                            ${users.length ? `
+                                <div class="table-wrap">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Nome</th>
+                                                <th>E-mail</th>
+                                                <th>Perfil</th>
+                                                <th>Status da Conta</th>
+                                                <th>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${users.map(u => {
+                                                const perfilRaw = String(u.perfil || u.role || '').toLowerCase();
+                                                const perfilLabel = perfilRaw === 'admin' ? 'Administrador' : 'Leitor';
+                                                const activeAccount = String(u.statusConta || 'ativo').toLowerCase() === 'ativo';
+                                                return `
+                                                    <tr>
+                                                        <td><strong>${esc(u.nome)}</strong></td>
+                                                        <td>${esc(u.email)}</td>
+                                                        <td><span class="pill">${perfilLabel}</span></td>
+                                                        <td>
+                                                            <span class="status ${activeAccount ? 'pending' : 'cancelled'}">
+                                                                ${activeAccount ? 'Ativo' : 'Desativado'}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <div class="admin-actions">
+                                                                <button class="btn btn-small btn-light" data-action="inspect-user" data-id="${u.id}" data-name="${esc(u.nome)}">Ver Perfil</button>
+                                                                ${perfilRaw !== 'admin' ? (activeAccount
+                    ? `<button class="btn btn-small btn-danger" data-action="toggle-user" data-id="${u.id}" data-status="ativo">Desativar Conta</button>`
+                    : `<button class="btn btn-small btn-gold" data-action="toggle-user" data-id="${u.id}" data-status="desativado">Ativar Conta</button>`) : ''}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                `;
+                                            }).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ` : `<div class="empty-state">Nenhum usuário encontrado ou endpoint de usuários indisponível.</div>`}
                         </section>
                     </section>
                 </main>
@@ -1285,6 +1398,7 @@
             // Vincula os livros e gêneros na janela para uso dos modais
             window._adminBooks = books;
             window._adminGenres = genres;
+            window._adminUsers = users;
         } catch (err) {
             $('#app').innerHTML = shell('admin', `
                 <main class="container section">
@@ -1458,6 +1572,86 @@
         });
     }
 
+    async function openUserModal(id) {
+        let u = (window._adminUsers || []).find(x => String(x.id) === String(id));
+        if (!u) {
+            try {
+                u = await apiRequest(`/usuarios/${id}`);
+            } catch (err) {
+                toast('Erro ao carregar usuário: ' + err.message);
+                return;
+            }
+        }
+
+        const role = normalizeRole(u.perfil || u.role || 'leitor');
+        const statusConta = String(u.statusConta || u.status || 'ativo').toLowerCase();
+        const backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop';
+        backdrop.innerHTML = `
+            <div class="modal">
+                <div class="modal-head">
+                    <h2>Editar usuário</h2>
+                    <button class="close-modal" data-close aria-label="Fechar">×</button>
+                </div>
+                <form id="user-form">
+                    <div class="field">
+                        <label for="u-nome">Nome</label>
+                        <input class="form-control" id="u-nome" name="nome" required value="${esc(u.nome || u.name || '')}">
+                    </div>
+                    <div class="field">
+                        <label for="u-email">E-mail</label>
+                        <input class="form-control" id="u-email" name="email" type="email" required value="${esc(u.email || '')}">
+                    </div>
+                    <div class="form-row">
+                        <div class="field">
+                            <label for="u-role">Perfil</label>
+                            <select class="form-control" id="u-role" name="perfil">
+                                <option value="LEITOR" ${role === 'leitor' ? 'selected' : ''}>LEITOR</option>
+                                <option value="ADMIN" ${role === 'admin' ? 'selected' : ''}>ADMIN</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="u-status">Status da conta</label>
+                            <select class="form-control" id="u-status" name="statusConta">
+                                <option value="ativo" ${statusConta === 'ativo' ? 'selected' : ''}>Ativo</option>
+                                <option value="inativo" ${statusConta !== 'ativo' ? 'selected' : ''}>Inativo</option>
+                            </select>
+                        </div>
+                    </div>
+                    <p id="user-modal-error" class="muted" style="color:var(--red)"></p>
+                    <button class="btn btn-gold" style="width:100%" type="submit">Salvar alterações</button>
+                </form>
+            </div>
+        `;
+        document.body.append(backdrop);
+        backdrop.addEventListener('click', e => {
+            if (e.target === backdrop || e.target.closest('[data-close]')) backdrop.remove();
+        });
+        $('#user-form', backdrop).addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            const errEl = $('#user-modal-error', backdrop);
+            errEl.textContent = '';
+            const payload = {
+                nome: String(fd.get('nome') || '').trim(),
+                email: String(fd.get('email') || '').trim().toLowerCase(),
+                perfil: String(fd.get('perfil') || 'LEITOR').toUpperCase(),
+                statusConta: String(fd.get('statusConta') || 'ativo').toLowerCase()
+            };
+            try {
+                await apiRequest(`/usuarios/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(payload)
+                });
+                toast('Usuário atualizado com sucesso.');
+                backdrop.remove();
+                await renderAdmin();
+            } catch (err) {
+                errEl.textContent = err.message;
+            }
+        });
+    }
+
     // --- ATIVAR OU DESATIVAR LIVRO (data-action="toggle-book") ---
     async function toggleBook(id) {
         try {
@@ -1571,38 +1765,104 @@
             cancelRental(actionEl.dataset.id);
         }
 
-               if (action === 'deactivate-user') {
-            if (!confirm('Tem certeza que deseja desativar esta conta de usuário?')) return;
-            apiRequest(`/usuarios/${actionEl.dataset.id}`, { method: 'DELETE' })
-                .then(() => {
-                    toast('Conta desativada com sucesso.');
-                    renderAdmin();
+        if (action === 'inspect-user') {
+            const userId = actionEl.dataset.id;
+            Promise.all([
+               apiRequest(`/usuarios/${userId}`),
+               apiRequest(`/usuarios/${userId}/alugueis?size=50`)
+            ])
+               .then(([usr, rentalsData]) => {
+                   const list = rentalsData?.content || [];
+                   return Promise.all(list.map((r) =>
+                        apiRequest(`/alugueis/${r.id}`)
+                            .catch(() => null)
+                           .then((d) => ({ ...r, livros: d?.livros || [] }))
+                   )).then((details) => ({ usr, details }));
+               })
+               .then(({ usr, details }) => {
+                   const perfil = String(usr?.perfil || usr?.role || '').toLowerCase() === 'admin' ? 'Administrador' : 'Leitor';
+                   const statusConta = String(usr?.statusConta || 'ativo').toLowerCase() === 'ativo' ? 'Ativo' : 'Desativado';
+                   const rentalsHtml = details.length ? `
+                       <div class="table-wrap" style="margin-top:16px">
+                           <table>
+                               <thead>
+                                   <tr>
+                                       <th>Livro(s)</th>
+                                       <th>Data do Pedido</th>
+                                       <th>Prazo de Devolução</th>
+                                       <th>Status</th>
+                                   </tr>
+                               </thead>
+                               <tbody>
+                                   ${details.map((r) => {
+                                       const titulos = (r.livros || []).map(l => l.titulo).join(', ') || 'Livro';
+                                       const pedido = r.dataAluguel ? new Date(r.dataAluguel).toLocaleDateString('pt-BR') : '-';
+                                       const prazo = r.dataDevolucaoPrevista ? new Date(r.dataDevolucaoPrevista + 'T00:00:00').toLocaleDateString('pt-BR') : '-';
+                                       const st = r.status === 'ativo' ? 'Ativo' : (r.status === 'atrasado' ? 'Atrasado' : 'Concluído');
+                                       return `<tr><td>${esc(titulos)}</td><td>${pedido}</td><td>${prazo}</td><td>${esc(st)}</td></tr>`;
+                                   }).join('')}
+                               </tbody>
+                           </table>
+                       </div>
+                   ` : `<p class="muted" style="margin-top:16px">Nenhum aluguel registrado para este usuário.</p>`;
+
+                   const backdrop = document.createElement('div');
+                   backdrop.className = 'modal-backdrop';
+                   backdrop.innerHTML = `
+                       <div class="modal">
+                           <div class="modal-head">
+                               <h2>Perfil do usuário</h2>
+                               <button class="close-modal" data-close aria-label="Fechar">×</button>
+                           </div>
+                           <div class="panel" style="margin-bottom:16px">
+                               <p><strong>Nome:</strong> ${esc(usr?.nome || '-')}</p>
+                               <p><strong>E-mail:</strong> ${esc(usr?.email || '-')}</p>
+                               <p><strong>Perfil:</strong> ${esc(perfil)}</p>
+                               <p><strong>Status da Conta:</strong> ${esc(statusConta)}</p>
+                           </div>
+                           <h3 style="font:600 20px var(--serif);margin:0">Aluguéis do usuário</h3>
+                           ${rentalsHtml}
+                       </div>
+                   `;
+                   document.body.append(backdrop);
+                   backdrop.addEventListener('click', (ev) => {
+                       if (ev.target === backdrop || ev.target.closest('[data-close]')) backdrop.remove();
+                    });
                 })
                 .catch((err) => toast(err.message));
         }
 
-        if (action === 'inspect-user') {
-            const userName = actionEl.dataset.name;
-            apiRequest(`/usuarios/${actionEl.dataset.id}/alugueis?size=50`)
-                .then((userRentalsData) => {
-                    const list = userRentalsData?.content || [];
-                    if (!list.length) {
-                        alert(`O usuário ${userName} não possui nenhum aluguel registrado.`);
-                        return;
-                    }
-                    Promise.all(list.map((r) =>
-                        apiRequest(`/alugueis/${r.id}`)
-                            .catch(() => null)
-                            .then((d) => {
-                                const titulos = (d?.livros || []).map(l => l.titulo).join(', ') || 'Livro';
-                                const prazo = r.dataDevolucaoPrevista ? new Date(r.dataDevolucaoPrevista + 'T00:00:00').toLocaleDateString('pt-BR') : '-';
-                                return `• ${titulos} | Status: ${r.status.toUpperCase()} | Prazo: ${prazo}`;
-                            })
-                    )).then((details) => {
-                        alert(`Histórico de ${userName}:\n\n${details.join('\n')}`);
-                    });
-                })
-                .catch((err) => toast(err.message));
+        if (action === 'toggle-user') {
+            const userId = actionEl.dataset.id;
+            const isCurrentlyActive = actionEl.dataset.status === 'ativo';
+            const confirmMsg = isCurrentlyActive
+               ? 'Tem certeza que deseja desativar esta conta de usuário?'
+               : 'Tem certeza que deseja ativar esta conta de usuário?';
+            if (!confirm(confirmMsg)) return;
+
+            if (isCurrentlyActive) {
+               apiRequest(`/usuarios/${userId}`, { method: 'DELETE' })
+                   .then(() => {
+                       toast('Conta desativada com sucesso.');
+                       renderAdmin();
+                   })
+                   .catch((err) => toast(err.message));
+            } else {
+               apiRequest(`/usuarios/${userId}`)
+                   .then((usr) => apiRequest(`/usuarios/${userId}`, {
+                       method: 'PUT',
+                       body: JSON.stringify({
+                           nome: usr.nome,
+                           email: usr.email,
+                           statusConta: 'ativo'
+                       })
+                   }))
+                   .then(() => {
+                       toast('Conta ativada com sucesso.');
+                       renderAdmin();
+                   })
+                   .catch((err) => toast(err.message));
+            }
         }
 
     });
@@ -1623,6 +1883,11 @@
     };
 
     const run = renderers[page] || renderHome;
-    run();
+    (async () => {
+        if (getToken()) {
+            await syncSessionIfPossible();
+        }
+        await run();
+    })();
 
 })();

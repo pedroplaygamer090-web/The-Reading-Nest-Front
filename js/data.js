@@ -3,7 +3,8 @@
  * A aplicação consome a API RESTful em http://localhost:8080.
  * Estes dados oficiais garantem que a livraria nunca exiba telas quebradas em caso de oscilações da API.
  */
-window.RN_API_BASE = 'http://localhost:8080';
+window.RN_API_BASE = 'https://the-reading-nest-back-1.onrender.com';
+
 
 window.RN_DEFAULT_GENRES = [
     { id: 'c1d2e3f4-0001-4000-8000-000000000001', nome: 'Clássicos' },
@@ -112,6 +113,6 @@ window.RN_DEFAULT_BOOKS = [
 ];
 
 window.RN_DEFAULT_USERS = [
-    { id: 'u1d2e3f4-0002-4000-8000-000000000002', nome: 'Cliente Demonstração', email: 'cliente@thereadingnest.com', perfil: 'cliente' },
+    { id: 'u1d2e3f4-0002-4000-8000-000000000002', nome: 'Leitor Demonstração', email: 'cliente@thereadingnest.com', perfil: 'leitor' },
     { id: 'u1d2e3f4-0001-4000-8000-000000000001', nome: 'Administrador', email: 'admin@thereadingnest.com', perfil: 'admin' }
 ];

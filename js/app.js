@@ -119,7 +119,7 @@
             let errorData = null;
             try {
                 errorData = await response.json();
-            } catch {}
+            } catch { }
 
             let message = 'Ocorreu um erro no servidor.';
             if (errorData && Array.isArray(errorData.erros) && errorData.erros.length > 0) {
@@ -429,18 +429,20 @@
         try {
             const [genresData, booksData] = await Promise.all([
                 apiRequest('/generos?size=100').catch(() => ({ content: fallbackGenres() })),
-                apiRequest('/livros?size=100').catch(() => ({ content: fallbackBooks().map(b => ({
-                    id: b.id,
-                    generosId: b.generoId,
-                    generoNome: b.category,
-                    titulo: b.title,
-                    autor: b.author,
-                    descricao: b.description,
-                    anoPublicacao: b.year,
-                    isbn: b.isbn,
-                    quantidadeDisponivel: b.stock,
-                    statusLivro: b.statusLivro
-                })) }))
+                apiRequest('/livros?size=100').catch(() => ({
+                    content: fallbackBooks().map(b => ({
+                        id: b.id,
+                        generosId: b.generoId,
+                        generoNome: b.category,
+                        titulo: b.title,
+                        autor: b.author,
+                        descricao: b.description,
+                        anoPublicacao: b.year,
+                        isbn: b.isbn,
+                        quantidadeDisponivel: b.stock,
+                        statusLivro: b.statusLivro
+                    }))
+                }))
             ]);
 
             allGenres = (genresData?.content || []).map(g => ({ id: g.id, nome: g.nome }));
@@ -961,7 +963,6 @@
             const data = await apiRequest(`/usuarios/${u.id}/alugueis?size=50`);
             const rentals = data?.content || [];
 
-            // Busca detalhes de livros dos aluguéis em paralelo
             const detailedRentals = await Promise.all(
                 rentals.map(async (r) => {
                     try {
@@ -983,7 +984,7 @@
                     </div>
 
                     <div class="notice" style="margin-bottom:24px;border-left:3px solid var(--gold);padding:14px;background:#fffaf2">
-                        📍 <strong>Local de Retirada & Devolução:</strong> Alameda dos Alfarrábios, 1428 — Jardins. Apresente seu nome no balcão de atendimento.
+                        📍 <strong>Local de Retirada & Devolução:</strong> Alameda dos Alfarrábios, 1428 — Jardins. Entregue o exemplar no balcão para que o bibliotecário registre a devolução.
                     </div>
 
                     <section class="panel">
@@ -1002,27 +1003,24 @@
                                     </thead>
                                     <tbody>
                                         ${detailedRentals.map(r => {
-                                            const isPending = r.status === 'ativo';
-                                            const isLate = r.status === 'atrasado';
-                                            const statusClass = isPending ? 'pending' : (isLate ? 'cancelled' : '');
-                                            const statusLabel = r.status === 'ativo' ? 'Ativo (Em leitura)' : (r.status === 'atrasado' ? 'Atrasado' : 'Concluído');
-                                            return `
+                const isPending = r.status === 'ativo';
+                const isLate = r.status === 'atrasado';
+                const statusClass = isPending ? 'pending' : (isLate ? 'cancelled' : '');
+                const statusLabel = r.status === 'ativo' ? 'Ativo (Em leitura)' : (r.status === 'atrasado' ? 'Atrasado' : 'Concluído');
+                return `
                                                 <tr>
                                                     <td><strong>${esc(r.bookTitle)}</strong></td>
                                                     <td>${r.dataAluguel ? new Date(r.dataAluguel).toLocaleDateString('pt-BR') : '-'}</td>
                                                     <td>${r.dataDevolucaoPrevista ? new Date(r.dataDevolucaoPrevista + 'T00:00:00').toLocaleDateString('pt-BR') : '-'}</td>
                                                     <td><span class="status ${statusClass}">${esc(statusLabel)}</span></td>
                                                     <td>
-                                                        ${(isPending || isLate) ? `
-                                                            <div style="display:flex;gap:6px;flex-wrap:wrap">
-                                                                <button class="btn btn-small btn-light" data-action="return-rental" data-id="${r.id}" title="Devolver livro à biblioteca">Devolver</button>
-                                                                <button class="btn btn-small btn-danger" data-action="cancel-rental" data-id="${r.id}" title="Cancelar aluguel">Cancelar</button>
-                                                            </div>
-                                                        ` : `<span class="muted" style="font-size:12px">Finalizado</span>`}
+                                                        ${isPending ? `
+                                                            <button class="btn btn-small btn-danger" data-action="cancel-rental" data-id="${r.id}" title="Cancelar aluguel">Cancelar</button>
+                                                        ` : isLate ? `<span class="muted" style="font-size:12px">Devolver no balcão</span>` : `<span class="muted" style="font-size:12px">Finalizado</span>`}
                                                     </td>
                                                 </tr>
                                             `;
-                                        }).join('')}
+            }).join('')}
                                     </tbody>
                                 </table>
                             </div>
@@ -1049,6 +1047,7 @@
             `);
         }
     }
+
 
     // --- PÁGINA SOBRE NÓS (sobre.html) ---
     function renderAbout() {
@@ -1336,7 +1335,7 @@
             try {
                 const res = await apiRequest('/generos?size=100');
                 genres = res?.content || [];
-            } catch {}
+            } catch { }
         }
 
         const backdrop = document.createElement('div');
@@ -1571,6 +1570,41 @@
         if (action === 'cancel-rental') {
             cancelRental(actionEl.dataset.id);
         }
+
+               if (action === 'deactivate-user') {
+            if (!confirm('Tem certeza que deseja desativar esta conta de usuário?')) return;
+            apiRequest(`/usuarios/${actionEl.dataset.id}`, { method: 'DELETE' })
+                .then(() => {
+                    toast('Conta desativada com sucesso.');
+                    renderAdmin();
+                })
+                .catch((err) => toast(err.message));
+        }
+
+        if (action === 'inspect-user') {
+            const userName = actionEl.dataset.name;
+            apiRequest(`/usuarios/${actionEl.dataset.id}/alugueis?size=50`)
+                .then((userRentalsData) => {
+                    const list = userRentalsData?.content || [];
+                    if (!list.length) {
+                        alert(`O usuário ${userName} não possui nenhum aluguel registrado.`);
+                        return;
+                    }
+                    Promise.all(list.map((r) =>
+                        apiRequest(`/alugueis/${r.id}`)
+                            .catch(() => null)
+                            .then((d) => {
+                                const titulos = (d?.livros || []).map(l => l.titulo).join(', ') || 'Livro';
+                                const prazo = r.dataDevolucaoPrevista ? new Date(r.dataDevolucaoPrevista + 'T00:00:00').toLocaleDateString('pt-BR') : '-';
+                                return `• ${titulos} | Status: ${r.status.toUpperCase()} | Prazo: ${prazo}`;
+                            })
+                    )).then((details) => {
+                        alert(`Histórico de ${userName}:\n\n${details.join('\n')}`);
+                    });
+                })
+                .catch((err) => toast(err.message));
+        }
+
     });
 
     // =========================================================================

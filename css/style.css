@@ -45,6 +45,15 @@ button {
     cursor: pointer
 }
 
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 3px
+}
+
 .hidden {
     display: none !important
 }
@@ -817,7 +826,8 @@ button {
 }
 
 .table-wrap {
-    overflow-x: auto
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch
 }
 
 table {
@@ -1056,12 +1066,36 @@ th {
 }
 
 @media(max-width:900px) {
+    .menu-toggle {
+        display: block
+    }
+
     .nav {
-        gap: 12px
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        max-height: calc(100vh - 82px);
+        overflow-y: auto;
+        background: var(--ink);
+        padding: 10px 22px 18px;
+        flex-direction: column;
+        align-items: flex-start;
+        border-bottom: 1px solid var(--gold);
+        z-index: 21
+    }
+
+    .nav.open {
+        display: flex
     }
 
     .nav a {
-        font-size: 11px
+        width: 100%;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        font-size: 12px
     }
 
     .book-grid {
@@ -1092,20 +1126,8 @@ th {
     }
 
     .nav {
-        display: none;
-        position: absolute;
-        top: 72px;
-        left: 0;
-        right: 0;
-        background: var(--ink);
-        padding: 16px 22px 22px;
-        flex-direction: column;
-        align-items: flex-start;
-        border-bottom: 1px solid var(--gold)
-    }
-
-    .nav.open {
-        display: flex
+        top: 100%;
+        max-height: calc(100vh - 72px)
     }
 
     .nav-actions {
@@ -1136,8 +1158,13 @@ th {
     }
 
     .hero {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
         padding: 48px 25px 25px
+    }
+
+    .hero-copy,
+    .hero-art {
+        min-width: 0
     }
 
     .hero-art {
@@ -1155,8 +1182,12 @@ th {
     }
 
     .book-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 11px
+    }
+
+    .book-card {
+        min-width: 0
     }
 
     .cover-art {
@@ -1164,7 +1195,11 @@ th {
     }
 
     .catalog-layout {
-        grid-template-columns: 1fr
+        grid-template-columns: minmax(0, 1fr)
+    }
+
+    .catalog-layout > div {
+        min-width: 0
     }
 
     .filter-panel {
@@ -1180,8 +1215,20 @@ th {
     }
 
     .detail-layout {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
         gap: 25px
+    }
+
+    .detail-copy {
+        min-width: 0
+    }
+
+    .detail-facts {
+        grid-template-columns: repeat(3, minmax(0, 1fr))
+    }
+
+    .fact {
+        min-width: 0
     }
 
     .detail-cover {
@@ -1273,9 +1320,97 @@ th {
     }
 }
 
+@media(max-width:540px) {
+    .topbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "brand menu"
+            "actions actions";
+        gap: 8px;
+        height: auto;
+        min-height: 72px;
+        padding: 10px 15px
+    }
+
+    .brand {
+        grid-area: brand;
+        min-width: 0;
+        gap: 8px
+    }
+
+    .brand-mark {
+        width: 37px;
+        height: 37px;
+        flex: 0 0 37px;
+        font-size: 22px
+    }
+
+    .brand-name {
+        font-size: clamp(18px, 5vw, 22px);
+        white-space: nowrap
+    }
+
+    .brand-sub {
+        font-size: 7px;
+        letter-spacing: 1.2px
+    }
+
+    .menu-toggle {
+        grid-area: menu;
+        min-height: 42px
+    }
+
+    .nav {
+        top: 100%;
+        max-height: calc(100vh - 120px)
+    }
+
+    .nav-actions {
+        grid-area: actions;
+        width: 100%;
+        justify-content: flex-start;
+        gap: 10px;
+        margin: 0
+    }
+
+    .btn,
+    .category-chip,
+    .menu-toggle {
+        min-height: 44px
+    }
+
+    .form-control {
+        font-size: 16px
+    }
+
+    .panel {
+        padding: 16px
+    }
+
+    .panel [style*="grid-template-columns"] {
+        grid-template-columns: minmax(0, 1fr) !important
+    }
+
+    .modal {
+        padding: 20px
+    }
+
+    .site-footer p {
+        line-height: 1.6;
+        overflow-wrap: anywhere
+    }
+}
+
 @media(max-width:390px) {
     .book-grid {
-        grid-template-columns: 1fr 1fr
+        grid-template-columns: repeat(2, minmax(0, 1fr))
+    }
+
+    .book-meta {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 5px
     }
 
     .cover-art {
@@ -1292,34 +1427,5 @@ th {
 
     .stat-card strong {
         font-size: 28px
-    }
-}
-
-@media (max-width: 768px) {
-    /* Empilha menus e cabeçalhos */
-    header, nav {
-        flex-direction: column;
-        gap: 10px;
-        text-align: center;
-    }
-
-    /* Faz grades de livros/cards ficarem em 1 coluna */
-    .grid-livros, .cards-container, .row {
-        grid-template-columns: 1fr;
-        flex-direction: column;
-    }
-
-    /* Permite rolar tabelas largas (como a de aluguéis no admin) para o lado */
-    table {
-        display: block;
-        overflow-x: auto;
-        white-space: nowrap;
-    }
-
-    /* Ajusta formulários de login/cadastro para preencher a tela */
-    .form-container, .card-login {
-        width: 95%;
-        margin: 15px auto;
-        padding: 15px;
     }
 }

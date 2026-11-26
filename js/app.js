@@ -274,8 +274,8 @@
                         <span class="brand-sub">BIBLIOTECA & LIVRARIA DE LUXO</span>
                     </span>
                 </a>
-                <button class="menu-toggle" id="menu-toggle" aria-label="Abrir menu">☰</button>
-                <nav class="nav" id="main-nav">
+                <button class="menu-toggle" id="menu-toggle" aria-label="Abrir menu" aria-controls="main-nav" aria-expanded="false">☰</button>
+                <nav class="nav" id="main-nav" aria-label="Navegação principal">
                     <a class="${active === 'home' ? 'active' : ''}" href="index.html">Início</a>
                     <a class="${active === 'catalog' ? 'active' : ''}" href="catalogo.html">Catálogo</a>
                     <a class="${active === 'about' ? 'active' : ''}" href="sobre.html">Sobre nós</a>
@@ -1739,9 +1739,20 @@
     // =========================================================================
     document.addEventListener('click', (e) => {
         // Toggle Menu Mobile
-        if (e.target.id === 'menu-toggle' || e.target.closest('#menu-toggle')) {
-            $('#main-nav')?.classList.toggle('open');
+        const menuToggle = e.target.closest('#menu-toggle');
+        if (menuToggle) {
+            const nav = $('#main-nav');
+            const isOpen = nav?.classList.toggle('open') || false;
+            menuToggle.setAttribute('aria-expanded', String(isOpen));
+            menuToggle.setAttribute('aria-label', isOpen ? 'Fechar menu' : 'Abrir menu');
             return;
+        }
+
+        if (e.target.closest('#main-nav a')) {
+            $('#main-nav')?.classList.remove('open');
+            const toggle = $('#menu-toggle');
+            toggle?.setAttribute('aria-expanded', 'false');
+            toggle?.setAttribute('aria-label', 'Abrir menu');
         }
 
         const actionEl = e.target.closest('[data-action]');

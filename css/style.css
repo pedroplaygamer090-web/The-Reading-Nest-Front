@@ -1000,22 +1000,26 @@ th {
 
 .modal {
     width: min(100%, 520px);
+    min-width: 0;
     background: var(--paper2);
     padding: 28px;
     border: 1px solid var(--gold);
     max-height: 90vh;
-    overflow: auto
+    overflow: auto;
+    overflow-wrap: anywhere
 }
 
 .modal-head {
     display: flex;
     justify-content: space-between;
-    align-items: center
+    align-items: center;
+    gap: 12px
 }
 
 .modal-head h2 {
     font: 600 30px var(--serif);
-    margin: 0
+    margin: 0;
+    min-width: 0
 }
 
 .close-modal {
@@ -1141,25 +1145,25 @@ th {
     }
 
     .auth-story {
-        padding: 40px 28px 25px;
-        min-height: 280px
+        padding: 36px 24px 22px;
+        min-height: 260px
     }
 
     .auth-story h1 {
-        font-size: 49px
+        font-size: 46px
     }
 
     .auth-card-wrap {
-        padding: 25px 18px 45px
+        padding: 22px 16px 38px
     }
 
     .auth-card {
-        padding: 30px 25px
+        padding: 27px 22px
     }
 
     .hero {
         grid-template-columns: minmax(0, 1fr);
-        padding: 48px 25px 25px
+        padding: 42px 22px 20px
     }
 
     .hero-copy,
@@ -1168,17 +1172,25 @@ th {
     }
 
     .hero-art {
-        height: 250px;
-        transform: scale(.78);
+        height: 235px;
+        transform: scale(.76);
         transform-origin: center top
     }
 
     .hero h1 {
-        font-size: 57px
+        font-size: 52px
     }
 
     .container {
-        width: min(100% - 30px, 1160px)
+        width: min(100% - 24px, 1160px)
+    }
+
+    .section {
+        padding: 40px 0
+    }
+
+    .section-title h2 {
+        font-size: 34px
     }
 
     .book-grid {
@@ -1187,11 +1199,12 @@ th {
     }
 
     .book-card {
-        min-width: 0
+        min-width: 0;
+        padding: 11px
     }
 
     .cover-art {
-        height: 190px
+        height: 180px
     }
 
     .catalog-layout {
@@ -1238,11 +1251,11 @@ th {
     }
 
     .detail-cover .cover-art {
-        height: 350px
+        height: 330px
     }
 
     .detail-copy h1 {
-        font-size: 43px
+        font-size: 40px
     }
 
     .dashboard-grid {
@@ -1286,7 +1299,7 @@ th {
     }
 
     .admin-main {
-        padding: 22px 15px
+        padding: 20px 14px
     }
 
     .admin-stats {
@@ -1307,7 +1320,7 @@ th {
     }
 
     .page-head {
-        padding-top: 32px
+        padding-top: 28px
     }
 
     .section-title {
@@ -1385,6 +1398,10 @@ th {
     }
 
     .panel {
+        padding: 14px
+    }
+
+    .stat-card {
         padding: 16px
     }
 
@@ -1392,8 +1409,37 @@ th {
         grid-template-columns: minmax(0, 1fr) !important
     }
 
+    .detail-facts {
+        grid-template-columns: repeat(2, minmax(0, 1fr))
+    }
+
+    .fact {
+        padding: 12px
+    }
+
+    .fact strong {
+        font-size: 18px;
+        line-height: 1.15;
+        overflow-wrap: anywhere
+    }
+
     .modal {
         padding: 20px
+    }
+
+    .modal-head {
+        align-items: flex-start
+    }
+
+    .modal-head h2 {
+        font-size: 26px
+    }
+
+    .close-modal {
+        flex: 0 0 44px;
+        min-height: 44px;
+        display: grid;
+        place-items: center
     }
 
     .site-footer p {

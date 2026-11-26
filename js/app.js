@@ -130,15 +130,18 @@
         window.rnToastTimer = setTimeout(() => el.classList.add('hidden'), 3800);
     };
 
-    // =========================================================================
+      // =========================================================================
     // 2. Cliente Centralizado de Requisições HTTP (API RESTful)
     // =========================================================================
     async function apiRequest(endpoint, options = {}) {
         const headers = { ...options.headers };
         const token = getToken();
-        if (token) {
+        
+        // Só anexa o token se ele for válido e se a requisição NÃO for de login
+        if (token && token !== 'null' && token !== 'undefined' && !endpoint.includes('/auth/login')) {
             headers['Authorization'] = `Bearer ${token}`;
         }
+        
         if (options.body && !(options.body instanceof FormData)) {
             headers['Content-Type'] = 'application/json';
         }
@@ -153,15 +156,32 @@
             throw new Error(`Não foi possível conectar ao servidor (${API_BASE}). Verifique se o backend está em execução.`);
         }
 
-        // Tratamento Uniforme de Erros (Conforme integracao-front.md)
+
+               // Tratamento Uniforme de Erros (Conforme integracao-front.md)
         if (response.status === 401) {
+            let errorData = null;
+            try {
+                errorData = await response.json();
+            } catch { }
+
+            // Se o erro 401 ocorreu na tela de login, exibe a mensagem real vinda do backend (ex: E-MAIL OU SENHA INVÁLIDOS)
+            if (page === 'login') {
+                const msgLogin = (errorData && errorData.mensagem) 
+                    ? errorData.mensagem 
+                    : 'E-MAIL OU SENHA INVÁLIDOS';
+                const err = new Error(msgLogin);
+                err.status = 401;
+                throw err;
+            }
+
+            // Se ocorreu em outras páginas, limpa a sessão e redireciona
             localStorage.removeItem('rn_token');
             localStorage.removeItem('rn_user');
-            if (page !== 'login' && page !== 'register') {
+            if (page !== 'register') {
                 toast('Sessão expirada. Redirecionando para o login...');
                 setTimeout(() => { location.href = 'login.html'; }, 1200);
             }
-            const err = new Error('ACESSO NÃO AUTORIZADO: TOKEN AUSENTE OU EXPIRADO');
+            const err = new Error((errorData && errorData.mensagem) || 'ACESSO NÃO AUTORIZADO: TOKEN AUSENTE OU EXPIRADO');
             err.status = 401;
             throw err;
         }
@@ -191,6 +211,7 @@
 
         return await response.json();
     }
+
 
     // =========================================================================
     // 3. Mapeador de Dados da API para o Front-end

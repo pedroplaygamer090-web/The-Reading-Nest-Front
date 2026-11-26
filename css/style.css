@@ -1294,3 +1294,32 @@ th {
         font-size: 28px
     }
 }
+
+@media (max-width: 768px) {
+    /* Empilha menus e cabeçalhos */
+    header, nav {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+
+    /* Faz grades de livros/cards ficarem em 1 coluna */
+    .grid-livros, .cards-container, .row {
+        grid-template-columns: 1fr;
+        flex-direction: column;
+    }
+
+    /* Permite rolar tabelas largas (como a de aluguéis no admin) para o lado */
+    table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    /* Ajusta formulários de login/cadastro para preencher a tela */
+    .form-container, .card-login {
+        width: 95%;
+        margin: 15px auto;
+        padding: 15px;
+    }
+}
